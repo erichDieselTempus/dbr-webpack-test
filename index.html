@@ -6,13 +6,10 @@
 </head>
 
 <body>
-    <button id="readBarcode">show scanner CHANGED</button>
-    <script src="./dist/bundle.js"></script>
-    <script src="./src/scanLayer.js"></script>
+    <button id="readBarcode">show scanner</button>
+    <button id="activate_ROI">ROI</button>
     <div id = "masterGrid">
         <div id="left_sidebar" class="sidebar">
-            
-            <br>
             <label for="num_cols_input">Columns:</label>
             <input type="number" id="num_cols_input" min="0" max="10" onchange="redraw_overlay()">
             <label for="num_rows_input">Rows:</label>
@@ -32,7 +29,6 @@
             <input type="number" id="x_offset_input" min="0" max="1000" onchange="redraw_overlay()">
             <label for="y_offset_input">Y Offset:</label>
             <input type="number" id="y_offset_input" min="0" max="1000" onchange="redraw_overlay()">
-            
         </div>
         <div id="div-ui-container">     
             <div class="dce-video-container"></div>
@@ -41,13 +37,16 @@
         <div id="right_sidebar" class="sidebar">
             <input type="button" value="CORNERS" onclick="load_overlay(this.value)">
             <input type="button" value="SIX-BY-FOUR" onclick="load_overlay(this.value)">
+            <br><br>
+            <div id="result" onchange="check_result()"></div>
         </div>
     </div>
-    
+    <script src="./dist/bundle.js"></script>
+    <script src="./src/scanLayer.js"></script>
 </body>
 <script>
-    const WIDTH = 800
-    const HEIGHT = 450
+    const WIDTH = 640
+    const HEIGHT = 360
 
     var x_offset_input = document.getElementById("x_offset_input")
     var y_offset_input = document.getElementById("y_offset_input")
@@ -59,20 +58,44 @@
     var y_length_input = document.getElementById("y_length_input")
     var overlay = document.getElementById("overlay")
     
-    //init_overlay()
-
-    //load_overlay("corners")
-
+   
+    load_overlay("SIX-BY-FOUR")
 
     function check_grid_click(event) {
+        console.log("You Clicked: " + event.offsetX.toString() + ", " + event.offsetY.toString())
         let result = ActiveSL.getCellIndexAt(event.offsetX, event.offsetY)
         if (result) {
-            let regions = overlay.children[result - 1].classList.add('region_complete')
+            console.log("You clicked Cell: " + result)
+            let regions = overlay.children[result - 1].classList.add('scanned')
         }
+    }
+
+    function check_result(result) {
         console.log(result)
     }
+    
+    function check_grid_scan(txt,result, camRes) {
+        let x1 = result["localizationResult"]["x1"]
+        let y1 = result["localizationResult"]["y1"]
+        let average_x = (result["localizationResult"]["x1"] + result["localizationResult"]["x2"] + result["localizationResult"]["x3"] + result["localizationResult"]["x4"])/4
+        let average_y = (result["localizationResult"]["y1"] + result["localizationResult"]["y2"] + result["localizationResult"]["y3"] + result["localizationResult"]["y4"])/4
+        
+        //Need to adjust the scale of units to reflect the overlay window.
+        // Scan results are reported in camera pixels.
+        console.log(camRes)
+        console.log(x1,y1)
+        console.log("Code Centroid Read: " + average_x.toString() + ", " + average_y.toString())
+        let grid_match = ActiveSL.getCellIndexAt(average_x/2, average_y/2)
+        if (grid_match) {
+            overlay.children[grid_match - 1].classList.add('scanned')
+        }
+        
+    }
+
+
     function load_overlay(template_name) {
         let SL = new ScanLayer(template_name)
+        // Update input fields and store the new ScanLayer before redrawing grid.
         ActiveSL = SL
         x_offset_input.value = SL.x_offset
         y_offset_input.value = SL.y_offset
@@ -85,39 +108,10 @@
         redraw_overlay()
     }
 
-    /*
-
-    function init_overlay() {
-        x_offset_input.value = INIT_SIDE_MARGIN
-        y_offset_input.value = INIT_TOP_MARGIN
-        num_cols_input.value = INIT_NUM_COLS
-        num_rows_input.value = INIT_NUM_ROWS
-        grid_gap_input.value = INIT_GRID_GAP
-        x_length_input.value = INIT_X_LENGTH
-        y_length_input.value = INIT_Y_LENGTH
-        refresh_y_offset()
-        refresh_x_offset()
-        refresh_grid()
-        refresh_grid_gap()
-        refresh_cell_size()
-    }
-    */
-
-    function add_cells_to_overlay(rows, columns) {
-        overlay.style.gridTemplateColumns = "repeat(" + columns.toString() + ", 1fr)"
-        overlay.style.gridTemplateRows = "repeat(" + rows.toString() + ", 1fr)"
-        for (let i=0;  i < rows*columns; i++) {
-            console.log("loop")
-            let br = document.createElement("div")
-            br.classList.add('barcode_region');
-            document.getElementById("overlay").appendChild(br)  
-        }
-    }
-
     function redraw_overlay() {
         // Set offset and grid gaps
-        overlay.style.marginLeft = x_offset_input.value
-        overlay.style.marginTop = y_offset_input.value
+        overlay.style.paddingLeft = x_offset_input.value
+        overlay.style.paddingTop = y_offset_input.value
         let x_gap = x_gap_input.value.toString() + "px"
         let y_gap = y_gap_input.value.toString() + "px"
         // Grid gap takes <Row-gap> <Column-Gap>, so y_gap goes first
@@ -143,48 +137,13 @@
         }
     }
 
-
-    function refresh_cell_size() {
-        let x_size = x_length_input.value.toString()
-        let y_size = y_length_input.value.toString()
-        // repeat(99px, N)
-        overlay.style.gridTemplateColumns = "repeat(" + num_cols_input.value.toString() + "," + x_size + "px)"
-        overlay.style.gridTemplateRows = "repeat(" + num_rows_input.value.toString() + "," + y_size + "px)"
-    }
-
-    function refresh_grid() {
-        let num_rows = document.getElementById("num_rows_input").value
-        let num_cols= document.getElementById("num_cols_input").value
-        while (overlay.hasChildNodes()) {
-            overlay.removeChild(overlay.firstChild);
-        }
-        add_cells_to_overlay(num_rows, num_cols)
-    }
-
-    function refresh_grid_gap() {
-        overlay.style.gap = y_gap_input.value.toString() + "px " + x_gap_input.value.toString() + "px"
-    }
-
-    function refresh_y_offset() {
-        let amt = y_offset_input.value
-        overlay.style.height = HEIGHT - 2*amt
-        overlay.style.marginTop = amt
-        overlay.style.marbinBottom = amt
-    }
-
-    function refresh_x_offset() {
-        overlay.style.marginLeft = x_offset_input.value
-    }
-
-
-
 </script>
 
 <style>
     #masterGrid {
         height: 100%;
         display:grid;
-        grid-template-columns: auto 800px auto;
+        grid-template-columns: auto 640px auto;
         grid-template-rows: 1fr 1fr;
     }
 
@@ -198,15 +157,14 @@
     #overlay {
         display: grid;
         position: absolute;
-        margin: 20px;
-        width: 100%;
-        height: 100%;
+        width: 640px;
+        height: 360px;
     }
 
     .dce-video-container {
         position: absolute;
-        width: 800px;
-        height: 450px;
+        width: 640px;
+        height: 360px;
         background-color: lightblue;
     }
 
@@ -222,7 +180,7 @@
         pointer-events: none;
     }
 
-    .region_complete {
+    .scanned {
         border-color: black;
         background-color: rgba(128, 128, 0, 128a);
     }

@@ -37,18 +37,24 @@ class ScanLayer {
         //1 is start index for compatibility with spreadsheets?
         let x_unit = this.cell_x + this.x_gap
         let y_unit = this.cell_y + this.y_gap
-        // Isolate point to bounds of a single unit
 
+        console.log("Scan Layer (Before Applied): " + x.toString() + ", " + y.toString())
+        // Correct for Offset
+        x -= this.x_offset
+        y -= this.y_offset
+        console.log("Scan Layer (Offset Applied): " + x.toString() + ", " + y.toString())
+        
+        // Isolate point to bounds of a single unit
         let col_idx = Math.floor(x / x_unit) 
         let row_idx = Math.floor(y / y_unit) 
         let dx = x % x_unit 
         let dy = y % y_unit
-        console.log(col_idx,row_idx)
-        console.log("Click at: " + x.toString() + ", " + y.toString())
-        console.log("Change is: " + dx.toString() + ", " + dy.toString())
+        
+        
         // Break if either point falls in the gap
         if (dx > this.cell_x || dy > this.cell_y) return false
-        
+        // Break if either point is past max
+        if (x > x_unit * this.num_cols || y > y_unit * this.num_rows) return false
         return (row_idx * this.num_cols) + col_idx + 1
     }
 
