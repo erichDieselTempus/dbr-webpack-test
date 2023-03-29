@@ -6,8 +6,141 @@
 </head>
 
 <body>
-    <button id="readBarcode">show scanner</button>
+    <button id="readBarcode">show scanner CHANGED</button>
     <script src="./dist/bundle.js"></script>
+    <div id = "masterGrid">
+        <div id="left_sidebar" class="barcode_region">
+            <label for="side_margin_input">Side margin:</label>
+            <input type="number" id="side_margin_input" min="0" max="100" onchange="refresh_side_margin(this.value)">
+            <br>
+            <label for="top_margin_input">Top margin:</label>
+            <input type="number" id="top_margin_input" min="0" max="100" onchange="refresh_top_margin(this.value)">
+            <br>
+            <label for="num_rows_input">Rows:</label>
+            <input type="number" id="num_rows_input" min="0" max="10" onchange="refresh_grid()">
+            <br>
+            <label for="num_cols_input">Columns:</label>
+            <input type="number" id="num_cols_input" min="0" max="10" onchange="refresh_grid()">
+        </div>
+        <div id="div-ui-container">     
+            <div class="dce-video-container"></div>
+            <div id="overlay"></div>
+        </div>
+        <div id="right_sidebar" class="barcode_region">
+            RIGHT
+        </div>
+    </div>
+    
 </body>
+<script>
+    const WIDTH = 800
+    const HEIGHT = 450
+    add_cells_to_overlay(4,6)
+    
+    function add_cells_to_overlay(rows, columns) {
+        let overlay = document.getElementById("overlay")
+        overlay.style.gridTemplateColumns = "repeat(" + columns.toString() + ", 1fr)"
+        overlay.style.gridTemplateRows = "repeat(" + rows.toString() + ", 1fr)"
+        for (let i=0;  i < rows*columns; i++) {
+            console.log("loop")
+            let br = document.createElement("div")
+            br.classList.add('barcode_region');
+            document.getElementById("overlay").appendChild(br)  
+        }
+    }
+
+    function refresh_grid() {
+        let overlay = document.getElementById("overlay");
+        let num_rows = document.getElementById("num_rows_input").value
+        let num_cols= document.getElementById("num_cols_input").value
+        while (overlay.hasChildNodes()) {
+            overlay.removeChild(overlay.firstChild);
+        }
+        add_cells_to_overlay(num_rows, num_cols)
+    }
+
+    function refresh_top_margin(amt) {
+        let overlay = document.getElementById("overlay")
+        overlay.style.height = HEIGHT - 2*amt
+        overlay.style.marginTop = amt
+        overlay.style.marbinBottom = amt
+    }
+
+    function refresh_side_margin(amt) {
+        let overlay = document.getElementById("overlay")
+        overlay.style.width = WIDTH - 2*amt
+        overlay.style.marginLeft = amt
+        overlay.style.marginRight = amt
+    }
+
+
+
+
+
+    function set_overlay_margin(margin_size) {
+        let overlay = document.getElementById("overlay")
+        overlay.style.width = WIDTH - (2*margin_size)
+        overlay.style.height = HEIGHT - (2*margin_size)
+        overlay.style.margin = margin_size
+
+    }
+</script>
+
+<style>
+    #masterGrid {
+        height: 100%;
+        display:grid;
+        grid-template-columns: auto 800px auto;
+        grid-template-rows: 1fr 1fr;
+    }
+
+    
+    #div-ui-container {
+        width: 100%;
+        height: 100%;
+        background-color: blue;
+
+    }
+    #overlay {
+        display: grid;
+        position: absolute;
+        margin: 20px;
+        width: 100%;
+        height: 100%;
+    }
+
+    .dce-video-container {
+        position: absolute;
+        width: 800px;
+        height: 450px;
+        background-color: lightblue;
+    }
+
+    .sidebar {
+        background-color: violet;
+        justify-self: stretch;
+    }
+    .barcode_region {
+        justify-self: stretch;
+        border-style: solid;
+        border-color: yellow;
+        border-width: 5px;
+    }
+
+    @media (max-width: 800px) {
+        #div-ui-container {
+            background-color: lime;
+        }
+
+        .dce-video-container {
+            width: 400px;
+            height: 225px;
+            background-color: red;
+        }
+    }
+
+
+</style>
+
 
 </html>
