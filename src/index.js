@@ -14,16 +14,18 @@ BarcodeScanner.license = 'DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAxNzU1MzczLVRYbFhaV0pRY2
 BarcodeScanner.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode/dist/";
 
 let pScanner = null;
-let result_ele = document.getElementById("result")
-console.log(result_ele)
+
 if (document.getElementById('readBarcode')) {
     document.getElementById('readBarcode').onclick = async function() {
         try {
             //BarcodeScanner.defaultUIElementURL = "./src/dbr.ui.html";
             let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance());
+            let settings = await scanner.getRuntimeSettings();
+            settings.expectedBarcodesCount = 24;
+            
             await scanner.setResolution(1280, 720);
             let camRes = await scanner.getResolution()
-            
+            await scanner.updateRuntimeSettings(settings);
             //await scanner.setVideoFit("cover")
             //await scanner.setResolution(800, 450)
             await scanner.setUIElement(document.getElementById('div-ui-container'));
@@ -36,7 +38,6 @@ if (document.getElementById('readBarcode')) {
             };
             scanner.onUniqueRead = (txt, result) => {
                 check_grid_scan(txt, result, camRes)
-                result_ele.innerText = camRes
             }
             await scanner.show();
             
@@ -46,6 +47,8 @@ if (document.getElementById('readBarcode')) {
         }
     };
 }
+
+
 
 if (document.getElementById('activate_ROI')) {
     document.getElementById('activate_ROI').onclick = async function() {
@@ -65,3 +68,4 @@ if (document.getElementById('activate_ROI')) {
         }
     }
 }
+

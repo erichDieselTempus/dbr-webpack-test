@@ -29,16 +29,17 @@
             <input type="number" id="x_offset_input" min="0" max="1000" onchange="redraw_overlay()">
             <label for="y_offset_input">Y Offset:</label>
             <input type="number" id="y_offset_input" min="0" max="1000" onchange="redraw_overlay()">
+            <br><br><br><br>
+            <input type="button" value="CORNERS" onclick="load_scanning_layer(this.value)">
+            <input type="button" value="SIX-BY-FOUR" onclick="load_scanning_layer(this.value)">
         </div>
         <div id="div-ui-container">     
             <div class="dce-video-container"></div>
             <div id="overlay" onclick="check_grid_click(event)"></div>
         </div>
         <div id="right_sidebar" class="sidebar">
-            <input type="button" value="CORNERS" onclick="load_overlay(this.value)">
-            <input type="button" value="SIX-BY-FOUR" onclick="load_overlay(this.value)">
-            <br><br>
-            <div id="result" onchange="check_result()"></div>
+            <h3>Results:</h3>
+            <div id="result_list"></div>
         </div>
     </div>
     <script src="./dist/bundle.js"></script>
@@ -58,8 +59,27 @@
     var y_length_input = document.getElementById("y_length_input")
     var overlay = document.getElementById("overlay")
     
-   
-    load_overlay("SIX-BY-FOUR")
+    init()
+    var ActiveSL // Used to hold the active scanning layer
+    load_scanning_layer("SIX-BY-FOUR")
+
+    
+
+    function load_scanning_layer(template_name) {
+        let SL = new ScanLayer(template_name)
+        // Update input fields and store the new ScanLayer before redrawing grid.
+        ActiveSL = SL
+        x_offset_input.value = SL.x_offset
+        y_offset_input.value = SL.y_offset
+        num_cols_input.value = SL.num_cols
+        num_rows_input.value = SL.num_rows
+        x_gap_input.value = SL.x_gap
+        y_gap_input.value = SL.y_gap
+        x_length_input.value = SL.cell_x
+        y_length_input.value = SL.cell_y
+        redraw_overlay()
+    }
+    //load_overlay("SIX-BY-FOUR")
 
     function check_grid_click(event) {
         console.log("You Clicked: " + event.offsetX.toString() + ", " + event.offsetY.toString())
@@ -85,7 +105,7 @@
         console.log(camRes)
         console.log(x1,y1)
         console.log("Code Centroid Read: " + average_x.toString() + ", " + average_y.toString())
-        let grid_match = ActiveSL.getCellIndexAt(average_x/2, average_y/2)
+        let grid_match = ActiveSL.checkNewScan(average_x, average_y, WIDTH / camRes[0], txt)
         if (grid_match) {
             overlay.children[grid_match - 1].classList.add('scanned')
         }
@@ -137,9 +157,25 @@
         }
     }
 
+    function init() {
+        set_display_size(640, 360)
+
+    }
+
+    function set_display_size(width, height) {
+        document.getElementById("masterGrid").style.gridTemplateColumns = "auto " + width.toString() + "px auto"
+        overlay.style.width = width
+        overlay.style.height = height
+        document.getElementsByClassName("dce-video-container")[0].style.width = width
+        document.getElementsByClassName("dce-video-container")[0].style.height = height
+    }
+
 </script>
 
 <style>
+    body {
+        background-color: darkslategray;
+    }
     #masterGrid {
         height: 100%;
         display:grid;
@@ -169,7 +205,7 @@
     }
 
     .sidebar {
-        background-color: violet;
+        background-color: rgba(238, 130, 238, 0.416);
         justify-self: stretch;
     }
     .barcode_region {
@@ -177,12 +213,13 @@
         border-style: solid;
         border-color: yellow;
         border-width: 5px;
+        border-radius: 50%;
         pointer-events: none;
     }
 
     .scanned {
         border-color: black;
-        background-color: rgba(128, 128, 0, 128a);
+        background-color: rgba(77, 255, 0, 0.525);
     }
     @media (max-width: 800px) {
         #div-ui-container {
