@@ -28,12 +28,12 @@ const LAYER_TEMPLATES = {
         bc_format: 0x3007FF,  // ONED (aka One-D aka broad category for linear codes)
     },
     LEFT_RACK: {
-        cell_x: 50,
-        cell_y: 50,
-        x_offset: 30,
-        y_offset: 10,
-        x_gap: 9,
-        y_gap: 9,
+        cell_x: 8,
+        cell_y: 13,
+        x_offset: 4,
+        y_offset: 1,
+        x_gap: 1.5,
+        y_gap: 4,
         num_rows: 6,
         num_cols: 4,
         bc_format: 0x8000000,  // DataMatrix

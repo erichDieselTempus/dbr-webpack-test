@@ -64,13 +64,12 @@ async function startCamera() {
 }
 
 
-if (document.getElementById('readBarcode')) {
-    document.getElementById('readBarcode').onclick = async function() {
+if (document.getElementById('startScanning')) {
+    document.getElementById('startScanning').onclick = async function() {
         try {
             let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance())
             await scanner.resumeScan()
             console.log("Scanning Unpaused!")
-            
         } catch (ex) {
             //alert(ex.message);
             throw ex;
@@ -78,48 +77,23 @@ if (document.getElementById('readBarcode')) {
     };
 }
 
-
-
-
-if (document.getElementById('active_scanning_layer')) {
-    document.getElementById('active_scanning_layer').onchange = async function() {
-        let new_scanning_layer = document.getElementById('active_scanning_layer').innerText
-        console.log(new_scanning_layer)
-        console.log(SCANNING_PLANS)
-        try {
-            let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance());
-            await scanner.hide()
-            let settings = await scanner.getRuntimeSettings();
-            settings.expectedBarcodesCount = 24;
-            settings.barcodeFormat =  0x8000000;
-            await scanner.updateRuntimeSettings(settings);
-            await scanner.show()
-            console.log("Scanner Settings Updated!")
-        } catch (ex) {
-            alert(ex.message);
-            throw ex;
-        }
-    }
-}
-
-
-if (document.getElementById('bc_format_trigger')) {
-    document.getElementById('bc_format_trigger').onclick = async function() {
+if (document.getElementById('scanner_settings_update_trigger')) {
+    document.getElementById('scanner_settings_update_trigger').onclick = async function() {
         try {
             let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance());
             let settings = await scanner.getRuntimeSettings();
             // Critical to recast this value as Number during assignement.
             // console.log(typeof(~~document.getElementById('bc_format_trigger').dataset.value))
-            settings.barcodeFormatIds = ~~document.getElementById('bc_format_trigger').dataset.value;
+            settings.barcodeFormatIds = ~~document.getElementById('scanner_settings_update_trigger').dataset.value;
             settings.region.regionMeasuredByPercentage = 1;
-            settings.region.regionLeft = document.getElementById('roi_left_input').value * 100;
-            settings.region.regionTop = document.getElementById('roi_top_input').value * 100;
-            settings.region.regionRight = document.getElementById('roi_right_input').value * 100;
-            settings.region.regionBottom = document.getElementById('roi_bottom_input').value * 100;
+            settings.region.regionLeft = document.getElementById('roi_left_input').value;
+            settings.region.regionTop = document.getElementById('roi_top_input').value;
+            settings.region.regionRight = document.getElementById('roi_right_input').value;
+            settings.region.regionBottom = document.getElementById('roi_bottom_input').value;
+            settings.autoFocus = true
+            settings.expectedBarcodesCount = ~~document.getElementById("num_cols_input").value *  ~~document.getElementById('num_rows_input').value
 
-            settings.expectedBarcodesCount = ~~document.getElementById("num_cols_input") *  ~~document.getElementById('num_rows_input')
-
-            console.log("Barcode Format has been changed to " + document.getElementById('bc_format_trigger').dataset.value.toString())
+            console.log("Barcode Format has been changed to " + document.getElementById('scanner_settings_update_trigger').dataset.value.toString())
             console.log("ROI has been updated")
             console.log("expected BC counted updated", settings.expectedBarcodesCount)
             await scanner.updateRuntimeSettings(settings);

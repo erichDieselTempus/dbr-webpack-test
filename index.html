@@ -6,39 +6,45 @@
 </head>
 
 <body>
-    <button id="readBarcode">Begin Scanning</button>
-    <button id="activate_ROI">ROI</button>
-    <button id="get_cameras">Get Cameras</button>
-    <button id="bc_format_trigger" data-value="0x8000000">1-D Barcode Format</button>
+    <button id="startScanning">Begin Scanning</button>
+    <button id="scanner_settings_update_trigger" data-value="0x8000000">1-D Barcode Format</button>
     <div id = "masterGrid">
         <div id="left_sidebar" class="sidebar">
+            <h2>Status Message:</h2>
+            <div id = "status_message" style="height:100px;width:auto;border:1px solid #ccc;font:16px/26px Georgia, Garamond, Serif;overflow:auto;"></div>
             <label for="num_cols_input">Columns:</label>
             <input type="number" id="num_cols_input" min="0" max="10" onchange="redraw_overlay()">
+            <br>
             <label for="num_rows_input">Rows:</label>
             <input type="number" id="num_rows_input" min="0" max="10" onchange="redraw_overlay()">
             <br>
             <label for="x_length_input">X Length:</label>
             <input type="number" id="x_length_input" min="0" max="800" onchange="redraw_overlay()">
+            <br>
             <label for="y_length_input">Y Length:</label>
             <input type="number" id="y_length_input" min="0" max="800" onchange="redraw_overlay()">
             <br>
             <label for="x_gap_input">X Gap:</label>
             <input type="number" id="x_gap_input" min="0" max="1000" onchange="redraw_overlay()">
+            <br>
             <label for="y_gap_input">Y Gap:</label>
             <input type="number" id="y_gap_input" min="0" max="1000" onchange="redraw_overlay()">
             <br>
             <label for="x_offset_input">X Offset:</label>
             <input type="number" id="x_offset_input" min="0" max="1000" onchange="redraw_overlay()">
+            <br>
             <label for="y_offset_input">Y Offset:</label>
             <input type="number" id="y_offset_input" min="0" max="1000" onchange="redraw_overlay()">
             <br>
             <label for="roi_top_input">ROI Top:</label>
             <input type="number" id="roi_top_input" min="0" max="1000">
+            <br>
             <label for="roi_bottom_input">ROI Bottom:</label>
             <input type="number" id="roi_bottom_input" min="0" max="1000">
             <br>
             <label for="roi_left_input">ROI Left:</label>
             <input type="number" id="roi_left_input" min="0" max="1000">
+            <br>
             <label for="roi_right_input">ROI Right:</label>
             <input type="number" id="roi_right_input" min="0" max="1000">
             <br><br><br><br>
@@ -62,10 +68,9 @@
     <script src="./src/scanLayer.js"></script>
 </body>
 <script>
-    //const WIDTH = 640
-    //const HEIGHT = 360
-    const VIDEO_DISPLAY_WIDTH = 640
-    const VIDEO_DISPLAY_HEIGHT = 360
+    // Assume that we will only deal in video formats with a 16:9 aspect ratio
+    const VIDEO_DISPLAY_WIDTH = 800 
+    const VIDEO_DISPLAY_HEIGHT = VIDEO_DISPLAY_WIDTH * (9/16)
 
     var x_offset_input = document.getElementById("x_offset_input")
     var y_offset_input = document.getElementById("y_offset_input")
@@ -78,8 +83,8 @@
     var overlay = document.getElementById("overlay")
 
     // Initialize 
-    set_display_size(640, 360)
-    load_scanning_layer("TRAY_ID") 
+    set_display_size(VIDEO_DISPLAY_WIDTH, VIDEO_DISPLAY_HEIGHT)
+    load_scanning_layer("LEFT_RACK") 
     //await load_scanning_layer("TRAY_ID")
     var ActiveSL // Used to hold the active scanning layer
     // Store SL object in ActiveSL, and set any parameters that are stored in the DOM
@@ -106,8 +111,10 @@
             cancelable: true,
         });
         redraw_overlay()
-        document.getElementById("bc_format_trigger").dataset.value = ActiveSL.bc_format
-        document.getElementById("bc_format_trigger").dispatchEvent(event);
+        document.getElementById("status_message").innerText += "--> New Scanning Layer Loaded: " + template_name + "\n"
+
+        document.getElementById("scanner_settings_update_trigger").dataset.value = ActiveSL.bc_format
+        document.getElementById("scanner_settings_update_trigger").dispatchEvent(event);
     }
 
     function check_grid_click(event) {
@@ -158,14 +165,15 @@
     }
     
     function refresh_roi_inputs() {
-        let left =  (x_offset_input.value / VIDEO_DISPLAY_WIDTH) 
-        let top = y_offset_input.value / VIDEO_DISPLAY_HEIGHT 
-        let cell_width = x_length_input.value/VIDEO_DISPLAY_WIDTH + x_gap_input.value/VIDEO_DISPLAY_WIDTH
-        let cell_height = y_length_input.value/VIDEO_DISPLAY_HEIGHT + y_gap_input.value/VIDEO_DISPLAY_HEIGHT
-        console.log(y_length_input.value ,y_gap_input.value, VIDEO_DISPLAY_WIDTH) 
-        console.log(cell_width, cell_height)
-        let right = left + (cell_width * num_cols_input.value) - x_gap_input.value/VIDEO_DISPLAY_WIDTH
-        let bottom = top + (cell_height * num_rows_input.value) - y_gap_input.value/VIDEO_DISPLAY_HEIGHT
+        let left =  ~~x_offset_input.value 
+        let top = ~~y_offset_input.value 
+        console.log( x_length_input.value, x_gap_input.value)
+        let cell_width = ~~x_length_input.value + ~~x_gap_input.value
+        let cell_height = ~~y_length_input.value + ~~y_gap_input.value
+        console.log("CW:", cell_width)
+        let right = left + (cell_width * ~~num_cols_input.value) - ~~x_gap_input.value
+        let bottom = top + (cell_height * ~~num_rows_input.value) - ~~y_gap_input.value
+        console.log(left, right, top, bottom, cell_width, cell_height)
         document.getElementById("roi_top_input").value = top
         document.getElementById("roi_bottom_input").value = bottom
         document.getElementById("roi_left_input").value = left
@@ -174,17 +182,17 @@
 
     function redraw_overlay() {
         // Set offset and grid gaps
-        overlay.style.paddingLeft = x_offset_input.value
-        overlay.style.paddingTop = y_offset_input.value
-        let x_gap = x_gap_input.value.toString() + "px"
-        let y_gap = y_gap_input.value.toString() + "px"
+        overlay.style.paddingLeft = x_offset_input.value * VIDEO_DISPLAY_WIDTH/100
+        overlay.style.paddingTop = y_offset_input.value * VIDEO_DISPLAY_HEIGHT/100
+        let x_gap = (x_gap_input.value * VIDEO_DISPLAY_WIDTH/100).toString() + "px"
+        let y_gap = (y_gap_input.value * VIDEO_DISPLAY_HEIGHT/100).toString() + "px"
         // Grid gap takes <Row-gap> <Column-Gap>, so y_gap goes first
         overlay.style.gap = y_gap + " " + x_gap
         // Set grid template based on cell sizes.
         let num_cols = num_cols_input.value.toString()
         let num_rows = num_rows_input.value.toString()
-        let x_size = x_length_input.value.toString() + "px"
-        let y_size = y_length_input.value.toString() + "px"
+        let x_size = (x_length_input.value * VIDEO_DISPLAY_WIDTH/100).toString() + "px"
+        let y_size = (y_length_input.value * VIDEO_DISPLAY_HEIGHT/100).toString() + "px"
         // repeat(N, 99px)
         overlay.style.gridTemplateColumns = "repeat(" + num_cols + "," + x_size + ")"
         overlay.style.gridTemplateRows = "repeat(" + num_rows + "," + y_size + ")"
@@ -222,7 +230,7 @@
     #masterGrid {
         height: 100%;
         display:grid;
-        grid-template-columns: 1fr 640px 1fr;
+        grid-template-columns: 1fr 960px 1fr;
         grid-template-rows: 1fr 1fr;
     }
 
@@ -237,14 +245,14 @@
     #overlay {
         display: grid;
         position: absolute;
-        width: 640px;
+        width: 960px;
         height: 360px;
     }
 
     .dce-video-container {
         position: absolute;
-        width: 640px;
-        height: 360px;
+        width: 960px;
+        height: 540px;
         background-color: lightblue;
     }
 
