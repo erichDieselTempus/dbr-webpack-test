@@ -1,43 +1,81 @@
+// Object defined to describe a single "Scan & Match" process.
+// Object should describe both the spatial pattern, and the contents of the barcodes being detected.
+const SCANNING_PLANS = {
+    BLASTOFF: ["TUBES", "LEFT_RACK", "RIGHT_RACK"]
+}
+
+const LAYER_TEMPLATES = {
+    TRAY_ID: {
+        cell_x: 75,
+        cell_y: 75,
+        x_offset: 280,
+        y_offset: 135,
+        x_gap: 0,
+        y_gap: 0,
+        num_rows: 1,
+        num_cols: 1,
+        bc_format: 0x8000000,  // DataMatrix
+    },
+    TUBES: {
+        cell_x: 35,
+        cell_y: 140,
+        x_offset: 285,
+        y_offset: 5,
+        x_gap: 0,
+        y_gap: 55,
+        num_rows: 2,
+        num_cols: 2,
+        bc_format: 0x3007FF,  // ONED (aka One-D aka broad category for linear codes)
+    },
+    LEFT_RACK: {
+        cell_x: 50,
+        cell_y: 50,
+        x_offset: 30,
+        y_offset: 10,
+        x_gap: 9,
+        y_gap: 9,
+        num_rows: 6,
+        num_cols: 4,
+        bc_format: 0x8000000,  // DataMatrix
+    },
+    RIGHT_RACK: {
+        cell_x: 50,
+        cell_y: 50,
+        x_offset: 370,
+        y_offset: 10,
+        x_gap: 9,
+        y_gap: 9,
+        num_rows: 6,
+        num_cols: 4,
+        bc_format: 0x8000000,  // DataMatrix
+    }
+}
+
 class ScanLayer {
     constructor(template_name) {
         this.results = {}
+        this.cell_x = LAYER_TEMPLATES[template_name]["cell_x"]
+        this.cell_y = LAYER_TEMPLATES[template_name]["cell_y"]
+        this.x_offset = LAYER_TEMPLATES[template_name]["x_offset"]
+        this.y_offset = LAYER_TEMPLATES[template_name]["y_offset"]
+        this.x_gap = LAYER_TEMPLATES[template_name]["x_gap"]
+        this.y_gap = LAYER_TEMPLATES[template_name]["y_gap"]
+        this.num_rows = LAYER_TEMPLATES[template_name]["num_rows"]
+        this.num_cols = LAYER_TEMPLATES[template_name]["num_cols"]     
+        this.bc_format = LAYER_TEMPLATES[template_name]["bc_format"]
+        this.resetResultsList()
+       
 
-        if (template_name == "CORNERS") {
-            this.cell_x = 80;
-            this.cell_y = 80;
-            this.x_offset = 55;
-            this.y_offset = 0;
-            this.x_gap = 400;
-            this.y_gap = 200;
-            this.num_rows = 2;
-            this.num_cols = 2;
-            this.resetResultsList()
-        }
-        else if (template_name == "SIX-BY-FOUR") {
-            this.cell_x = 70;
-            this.cell_y = 70;
-            this.x_offset = 60;
-            this.y_offset = 10;
-            this.x_gap = 25;
-            this.y_gap = 20;
-            this.num_rows = 4;
-            this.num_cols = 6;
-            this.resetResultsList()
-        }
-        else {// Default Settings
-            this.cell_x = 50;
-            this.cell_y = 50;
-            this.x_offset = 100;
-            this.y_offset = 20;
-            this.x_gap = 5;
-            this.y_gap = 80;
-            this.num_rows = 2;
-            this.num_cols = 4;
-            this.resetResultsList()
-        }
+        // Setup universal and derived parameters
+        this.resetResultsList()
+        this.scan_complete = false
+        this.num_codes_scanned = 0
+        this.num_codes_expected = this.num_rows * this.num_cols
+        this.prohibited_locations = []
     }
 
     resetResultsList() {
+        // Clear result list and rebuild with appropriate content for active ScanningLayer
         this.results = {}
         for (let i = 0; i < this.num_rows * this.num_cols; i++) {
             this.results[i + 1] = ""
@@ -46,7 +84,9 @@ class ScanLayer {
     }
     
     pushResultToBrowser() {
+        // Should probably change this to provide return a string and let the user decide what to do with it
         let resultString = ""
+        console.log(this.results)
         for (let key in this.results) {
             resultString += key.toString() + ": " + this.results[key].toString() + "\n"
         }
@@ -55,8 +95,9 @@ class ScanLayer {
         }
     }
     getCellIndexAt(x,y) {
-        //Indexes left to right, then top to bottom starting at 1.
-        //1 is start index for compatibility with spreadsheets?
+        // Returns false if point is not in a target region. otherwise returns an integer index.
+        // Indexes are countedleft to right, then top to bottom starting at 1.
+        // 1 is start index for compatibility with spreadsheets?
         let x_unit = this.cell_x + this.x_gap
         let y_unit = this.cell_y + this.y_gap
 
@@ -87,10 +128,74 @@ class ScanLayer {
             this.results[cell_index] = txt
             console.log("Barcode registered with Scan Layer: " + txt)
             console.log("   - Cell IndexX " + cell_index.toString())
+            if (this.getResultCount()== this.num_codes_expected) {this.scan_complete = true}
             this.pushResultToBrowser()
             return cell_index
         }
         return false
     }
 
+    getResultCount() {
+        let count = 0
+        for (let key in this.results) {
+            if (this.results[key].toString() != "") {
+                count += 1
+            }
+        }
+        return count
+    }
 }
+
+
+// Old templates
+
+ /*
+        else if (template_name == "CORNERS") {
+            this.cell_x = 80;
+            this.cell_y = 80;
+            this.x_offset = 55;
+            this.y_offset = 0;
+            this.x_gap = 400;
+            this.y_gap = 200;
+            this.num_rows = 2;
+            this.num_cols = 2;            
+            this.bc_format = 0x8000000;  // DataMatrix
+            this.resetResultsList()
+        }
+        
+        else if (template_name == "SIX-BY-FOUR") {
+            this.cell_x = 70;
+            this.cell_y = 70;
+            this.x_offset = 60;
+            this.y_offset = 10;
+            this.x_gap = 25;
+            this.y_gap = 20;
+            this.num_rows = 4;
+            this.num_cols = 6;
+            this.bc_format = 0x8000000;  // DataMatrix
+            this.resetResultsList()
+        }
+        else if (template_name == "SMALL-SIX-BY-FOUR") {
+            this.cell_x = 40;
+            this.cell_y = 40;
+            this.x_offset = 170;
+            this.y_offset = 75;
+            this.x_gap = 15;
+            this.y_gap = 15;
+            this.num_rows = 4;
+            this.num_cols = 6;
+            this.bc_format = 0x8000000;  // DataMatrix
+            this.resetResultsList()
+        }
+        else {// Default Settings
+            this.cell_x = 50;
+            this.cell_y = 50;
+            this.x_offset = 100;
+            this.y_offset = 20;
+            this.x_gap = 5;
+            this.y_gap = 80;
+            this.num_rows = 2;
+            this.num_cols = 4;
+            this.resetResultsList()
+        }
+        */

@@ -6,8 +6,10 @@
 </head>
 
 <body>
-    <button id="readBarcode">show scanner</button>
+    <button id="readBarcode">Begin Scanning</button>
     <button id="activate_ROI">ROI</button>
+    <button id="get_cameras">Get Cameras</button>
+    <button id="bc_format_trigger" data-value="0x8000000">1-D Barcode Format</button>
     <div id = "masterGrid">
         <div id="left_sidebar" class="sidebar">
             <label for="num_cols_input">Columns:</label>
@@ -29,15 +31,29 @@
             <input type="number" id="x_offset_input" min="0" max="1000" onchange="redraw_overlay()">
             <label for="y_offset_input">Y Offset:</label>
             <input type="number" id="y_offset_input" min="0" max="1000" onchange="redraw_overlay()">
+            <br>
+            <label for="roi_top_input">ROI Top:</label>
+            <input type="number" id="roi_top_input" min="0" max="1000">
+            <label for="roi_bottom_input">ROI Bottom:</label>
+            <input type="number" id="roi_bottom_input" min="0" max="1000">
+            <br>
+            <label for="roi_left_input">ROI Left:</label>
+            <input type="number" id="roi_left_input" min="0" max="1000">
+            <label for="roi_right_input">ROI Right:</label>
+            <input type="number" id="roi_right_input" min="0" max="1000">
             <br><br><br><br>
-            <input type="button" value="CORNERS" onclick="load_scanning_layer(this.value)">
-            <input type="button" value="SIX-BY-FOUR" onclick="load_scanning_layer(this.value)">
+            <input type="button" value="TRAY_ID" onclick="load_scanning_layer(this.value)"><br>
+            <input type="button" value="TUBES" onclick="load_scanning_layer(this.value)"><br>
+            <input type="button" value="LEFT_RACK" onclick="load_scanning_layer(this.value)"><br>
+            <input type="button" value="RIGHT_RACK" onclick="load_scanning_layer(this.value)"><br>
         </div>
         <div id="div-ui-container">     
             <div class="dce-video-container"></div>
             <div id="overlay" onclick="check_grid_click(event)"></div>
         </div>
         <div id="right_sidebar" class="sidebar">
+            <h3>Results:</h3>
+            <div id="active_scanning_layer"></div>
             <h3>Results:</h3>
             <div id="result_list"></div>
         </div>
@@ -46,8 +62,10 @@
     <script src="./src/scanLayer.js"></script>
 </body>
 <script>
-    const WIDTH = 640
-    const HEIGHT = 360
+    //const WIDTH = 640
+    //const HEIGHT = 360
+    const VIDEO_DISPLAY_WIDTH = 640
+    const VIDEO_DISPLAY_HEIGHT = 360
 
     var x_offset_input = document.getElementById("x_offset_input")
     var y_offset_input = document.getElementById("y_offset_input")
@@ -58,15 +76,20 @@
     var x_length_input = document.getElementById("x_length_input")
     var y_length_input = document.getElementById("y_length_input")
     var overlay = document.getElementById("overlay")
-    
-    init()
-    var ActiveSL // Used to hold the active scanning layer
-    load_scanning_layer("SIX-BY-FOUR")
 
+    // Initialize 
+    set_display_size(640, 360)
+    load_scanning_layer("TRAY_ID") 
+    //await load_scanning_layer("TRAY_ID")
+    var ActiveSL // Used to hold the active scanning layer
+    // Store SL object in ActiveSL, and set any parameters that are stored in the DOM
+    //load_overlay("TRAY_ID")
     
 
     function load_scanning_layer(template_name) {
+        //document.getElementById("active_scanning_layer").innerText = template_name
         let SL = new ScanLayer(template_name)
+        console.log("Load Scanning Layer: ", template_name, SL)
         // Update input fields and store the new ScanLayer before redrawing grid.
         ActiveSL = SL
         x_offset_input.value = SL.x_offset
@@ -77,9 +100,15 @@
         y_gap_input.value = SL.y_gap
         x_length_input.value = SL.cell_x
         y_length_input.value = SL.cell_y
+        const event = new MouseEvent("click", {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+        });
         redraw_overlay()
+        document.getElementById("bc_format_trigger").dataset.value = ActiveSL.bc_format
+        document.getElementById("bc_format_trigger").dispatchEvent(event);
     }
-    //load_overlay("SIX-BY-FOUR")
 
     function check_grid_click(event) {
         console.log("You Clicked: " + event.offsetX.toString() + ", " + event.offsetY.toString())
@@ -88,12 +117,9 @@
             console.log("You clicked Cell: " + result)
             let regions = overlay.children[result - 1].classList.add('scanned')
         }
+        
     }
 
-    function check_result(result) {
-        console.log(result)
-    }
-    
     function check_grid_scan(txt,result, camRes) {
         let x1 = result["localizationResult"]["x1"]
         let y1 = result["localizationResult"]["y1"]
@@ -102,12 +128,15 @@
         
         //Need to adjust the scale of units to reflect the overlay window.
         // Scan results are reported in camera pixels.
-        console.log(camRes)
-        console.log(x1,y1)
         console.log("Code Centroid Read: " + average_x.toString() + ", " + average_y.toString())
-        let grid_match = ActiveSL.checkNewScan(average_x, average_y, WIDTH / camRes[0], txt)
+        let grid_match = ActiveSL.checkNewScan(average_x, average_y, VIDEO_DISPLAY_WIDTH / camRes[0], txt)
         if (grid_match) {
             overlay.children[grid_match - 1].classList.add('scanned')
+        }
+
+        if (ActiveSL.scan_complete) {
+            alert("This layer is fully scanned")
+            load_scanning_layer("LEFT_RACK") 
         }
         
     }
@@ -126,6 +155,21 @@
         x_length_input.value = SL.cell_x
         y_length_input.value = SL.cell_y
         redraw_overlay()
+    }
+    
+    function refresh_roi_inputs() {
+        let left =  (x_offset_input.value / VIDEO_DISPLAY_WIDTH) 
+        let top = y_offset_input.value / VIDEO_DISPLAY_HEIGHT 
+        let cell_width = x_length_input.value/VIDEO_DISPLAY_WIDTH + x_gap_input.value/VIDEO_DISPLAY_WIDTH
+        let cell_height = y_length_input.value/VIDEO_DISPLAY_HEIGHT + y_gap_input.value/VIDEO_DISPLAY_HEIGHT
+        console.log(y_length_input.value ,y_gap_input.value, VIDEO_DISPLAY_WIDTH) 
+        console.log(cell_width, cell_height)
+        let right = left + (cell_width * num_cols_input.value) - x_gap_input.value/VIDEO_DISPLAY_WIDTH
+        let bottom = top + (cell_height * num_rows_input.value) - y_gap_input.value/VIDEO_DISPLAY_HEIGHT
+        document.getElementById("roi_top_input").value = top
+        document.getElementById("roi_bottom_input").value = bottom
+        document.getElementById("roi_left_input").value = left
+        document.getElementById("roi_right_input").value = right
     }
 
     function redraw_overlay() {
@@ -155,12 +199,9 @@
             br.classList.add('barcode_region');
             document.getElementById("overlay").appendChild(br)  
         }
-    }
 
-    function init() {
-        set_display_size(640, 360)
-
-    }
+        refresh_roi_inputs()
+    }   
 
     function set_display_size(width, height) {
         document.getElementById("masterGrid").style.gridTemplateColumns = "auto " + width.toString() + "px auto"
@@ -169,6 +210,8 @@
         document.getElementsByClassName("dce-video-container")[0].style.width = width
         document.getElementsByClassName("dce-video-container")[0].style.height = height
     }
+
+    
 
 </script>
 
@@ -179,7 +222,7 @@
     #masterGrid {
         height: 100%;
         display:grid;
-        grid-template-columns: auto 640px auto;
+        grid-template-columns: 1fr 640px 1fr;
         grid-template-rows: 1fr 1fr;
     }
 
@@ -187,7 +230,8 @@
     #div-ui-container {
         width: 100%;
         height: 100%;
-        background-color: blue;
+        color: white;
+        background-color: #626262;
 
     }
     #overlay {
@@ -205,15 +249,15 @@
     }
 
     .sidebar {
-        background-color: rgba(238, 130, 238, 0.416);
-        justify-self: stretch;
+        background-color:#887ecb;
+        justify-self: auto;
     }
     .barcode_region {
         justify-self: stretch;
         border-style: solid;
         border-color: yellow;
         border-width: 5px;
-        border-radius: 50%;
+        border-radius: 0%;
         pointer-events: none;
     }
 
