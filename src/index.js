@@ -104,6 +104,31 @@ if (document.getElementById('scanner_settings_update_trigger')) {
     }
 }
 
+
+if (document.getElementById('scanner_pause_trigger')) {
+    document.getElementById('scanner_pause_trigger').onclick = async function() {
+        try {
+            console.log("Attempting to pause scanner")
+            let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance());
+            scanner.pauseScan()
+        } catch (ex) {
+            alert(ex.message);
+            throw ex;
+        }
+    }
+}
+if (document.getElementById('scanner_resume_trigger')) {
+    document.getElementById('scanner_resume_trigger').onclick = async function() {
+        try {
+            console.log("Attempting to resume scanner")
+            let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance());
+            scanner.resumeScan()
+        } catch (ex) {
+            alert(ex.message);
+            throw ex;
+        }
+    }
+}
 /*
 if (document.getElementById('get_cameras')) {
     document.getElementById('get_cameras').onclick = async function() {

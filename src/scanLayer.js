@@ -1,20 +1,18 @@
+
+
+
 // Object defined to describe a single "Scan & Match" process.
 // Object should describe both the spatial pattern, and the contents of the barcodes being detected.
 const SCANNING_PLANS = {
     BLASTOFF: ["TUBES", "LEFT_RACK", "RIGHT_RACK"]
 }
 
-
-
-const alt_LAYER_TEMPLATES = {
-
-}
 const LAYER_TEMPLATES = {
     TRAY_ID: {
-        cell_x: 75,
-        cell_y: 75,
-        x_offset: 280,
-        y_offset: 135,
+        cell_x: 9,
+        cell_y: 16,
+        x_offset: 44,
+        y_offset: 40,
         x_gap: 0,
         y_gap: 0,
         num_rows: 1,
@@ -22,12 +20,12 @@ const LAYER_TEMPLATES = {
         bc_format: 0x8000000,  // DataMatrix
     },
     TUBES: {
-        cell_x: 35,
-        cell_y: 140,
-        x_offset: 285,
-        y_offset: 5,
-        x_gap: 0,
-        y_gap: 55,
+        cell_x: 6,
+        cell_y: 42,
+        x_offset: 43,
+        y_offset: 0,
+        x_gap: 1.5,
+        y_gap: 16,
         num_rows: 2,
         num_cols: 2,
         bc_format: 0x3007FF,  // ONED (aka One-D aka broad category for linear codes)
@@ -44,12 +42,12 @@ const LAYER_TEMPLATES = {
         bc_format: 0x8000000,  // DataMatrix
     },
     RIGHT_RACK: {
-        cell_x: 50,
-        cell_y: 50,
-        x_offset: 370,
-        y_offset: 10,
-        x_gap: 9,
-        y_gap: 9,
+        cell_x: 8,
+        cell_y: 13,
+        x_offset: 60,
+        y_offset: 1,
+        x_gap: 1.5,
+        y_gap: 4,
         num_rows: 6,
         num_cols: 4,
         bc_format: 0x8000000,  // DataMatrix
@@ -108,10 +106,16 @@ class ScanLayer {
         this.pushResultToBrowser()
     }
     
+    getResultString() {
+        let resultString = ""
+        for (let key in this.results) {
+            resultString += key.toString() + ": " + this.results[key].toString() + "\n"
+        }
+        return resultString
+    }
     pushResultToBrowser() {
         // Should probably change this to provide return a string and let the user decide what to do with it
         let resultString = ""
-        console.log(this.results)
         for (let key in this.results) {
             resultString += key.toString() + ": " + this.results[key].toString() + "\n"
         }
@@ -127,11 +131,11 @@ class ScanLayer {
         let x_unit_px = (this.cell_x_px + this.x_gap_px)
         let y_unit_px = (this.cell_y_px + this.y_gap_px)
 
-        console.log("Scan Layer (Before Applied): " + x.toString() + ", " + y.toString())
+        //console.log("Scan Layer (Before Applied): " + x.toString() + ", " + y.toString())
         // Correct for Offset
         x -= this.x_offset_px 
         y -= this.y_offset_px
-        console.log("Scan Layer (Offset Applied): " + x.toString() + ", " + y.toString())
+        //console.log("Scan Layer (Offset Applied): " + x.toString() + ", " + y.toString())
 
         // Isolate point to bounds of a single unit
         let col_idx = Math.floor(x / x_unit_px) 
@@ -152,8 +156,8 @@ class ScanLayer {
         let cell_index = this.getCellIndexAt(camera_x * scale_factor, camera_y * scale_factor)
         if (cell_index) {
             this.results[cell_index] = txt
-            console.log("Barcode registered with Scan Layer: " + txt)
-            console.log("   - Cell IndexX " + cell_index.toString())
+            //console.log("Barcode registered with Scan Layer: " + txt)
+            //console.log("   - Cell IndexX " + cell_index.toString())
             if (this.getResultCount()== this.num_codes_expected) {this.scan_complete = true}
             this.pushResultToBrowser()
             return cell_index

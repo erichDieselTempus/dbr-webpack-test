@@ -8,10 +8,17 @@
 <body>
     <button id="startScanning">Begin Scanning</button>
     <button id="scanner_settings_update_trigger" data-value="0x8000000">1-D Barcode Format</button>
+    <button id="scanner_pause_trigger">Scanner Pause Trigger</button>
+    <button id="scanner_resume_trigger">Scanner Resume Trigger</button>
     <div id = "masterGrid">
         <div id="left_sidebar" class="sidebar">
             <h2>Status Message:</h2>
             <div id = "status_message" style="height:100px;width:100%;border:1px solid #ccc;font:16px/26px Georgia, Garamond, Serif;overflow:auto;"></div>
+            <br><br>
+            <input type="button" value="TRAY_ID" onclick="load_scanning_layer(this.value)"><br>
+            <input type="button" value="TUBES" onclick="load_scanning_layer(this.value)"><br>
+            <input type="button" value="LEFT_RACK" onclick="load_scanning_layer(this.value)"><br>
+            <input type="button" value="RIGHT_RACK" onclick="load_scanning_layer(this.value)"><br>
             <label for="num_cols_input">Columns:</label>
             <input type="number" id="num_cols_input" min="0" max="10" onchange="redraw_overlay()">
             <br>
@@ -47,11 +54,6 @@
             <br>
             <label for="roi_right_input">ROI Right:</label>
             <input type="number" id="roi_right_input" min="0" max="1000">
-            <br><br><br><br>
-            <input type="button" value="TRAY_ID" onclick="load_scanning_layer(this.value)"><br>
-            <input type="button" value="TUBES" onclick="load_scanning_layer(this.value)"><br>
-            <input type="button" value="LEFT_RACK" onclick="load_scanning_layer(this.value)"><br>
-            <input type="button" value="RIGHT_RACK" onclick="load_scanning_layer(this.value)"><br>
         </div>
         <div id="div-ui-container">     
             <div class="dce-video-container"></div>
@@ -72,6 +74,9 @@
     const VIDEO_DISPLAY_WIDTH = 800 
     const VIDEO_DISPLAY_HEIGHT = VIDEO_DISPLAY_WIDTH * (9/16)
     const CAMERA_RESOLUTION = [1280,720]
+    const SCANNING_PLAN = ["TRAY_ID","TUBES","RIGHT_RACK","LEFT_RACK"]
+
+    var current_scanning_layer = 0
 
     var x_offset_input = document.getElementById("x_offset_input")
     var y_offset_input = document.getElementById("y_offset_input")
@@ -85,8 +90,8 @@
 
     // Initialize 
     set_display_size(VIDEO_DISPLAY_WIDTH, VIDEO_DISPLAY_HEIGHT)
-    load_scanning_layer("LEFT_RACK") 
-    //await load_scanning_layer("TRAY_ID")
+    load_scanning_layer(SCANNING_PLAN[0]) 
+    alert('Scanning will begin when you select "START SCANNING".')
     var ActiveSL // Used to hold the active scanning layer
     // Store SL object in ActiveSL, and set any parameters that are stored in the DOM
     //load_overlay("TRAY_ID")
@@ -95,28 +100,32 @@
     function load_scanning_layer(template_name) {
         //document.getElementById("active_scanning_layer").innerText = template_name
         let SL = new ScanLayer(template_name, CAMERA_RESOLUTION, [VIDEO_DISPLAY_WIDTH, VIDEO_DISPLAY_HEIGHT])
-        console.log("Load Scanning Layer: ", template_name, SL)
         // Update input fields and store the new ScanLayer before redrawing grid.
         ActiveSL = SL
-        x_offset_input.value = SL.x_offset_px
-        y_offset_input.value = SL.y_offset_px
-        num_cols_input.value = SL.num_cols
-        num_rows_input.value = SL.num_rows
-        x_gap_input.value = SL.x_gap_px
-        y_gap_input.value = SL.y_gap_px
-        x_length_input.value = SL.cell_x_px
-        y_length_input.value = SL.cell_y_px
+        x_offset_input.value =  ActiveSL.x_offset_pct
+        y_offset_input.value =  ActiveSL.y_offset_pct
+        num_cols_input.value =  ActiveSL.num_cols
+        num_rows_input.value =  ActiveSL.num_rows
+        x_gap_input.value =     ActiveSL.x_gap_pct
+        y_gap_input.value =     ActiveSL.y_gap_pct
+        x_length_input.value =  ActiveSL.cell_x_pct
+        y_length_input.value =  ActiveSL.cell_y_pct
         const event = new MouseEvent("click", {
             view: window,
             bubbles: true,
             cancelable: true,
         });
         redraw_overlay()
-        document.getElementById("status_message").innerText += "--> New Scanning Layer Loaded: " + template_name + "\n"
-
+        update_status_message("--> New Scanning Layer Loaded: " + template_name )
         document.getElementById("scanner_settings_update_trigger").dataset.value = ActiveSL.bc_format
         document.getElementById("scanner_settings_update_trigger").dispatchEvent(event);
     }
+
+    function update_status_message(msg) {
+        document.getElementById("status_message").innerText += msg + "\n"
+    }
+
+
 
     function check_grid_click(event) {
         console.log("You Clicked: " + event.offsetX.toString() + ", " + event.offsetY.toString())
@@ -136,17 +145,31 @@
         
         //Need to adjust the scale of units to reflect the overlay window.
         // Scan results are reported in camera pixels.
-        console.log("Code Centroid Read: " + average_x.toString() + ", " + average_y.toString())
+        //console.log("Code Centroid Read: " + average_x.toString() + ", " + average_y.toString())
         let grid_match = ActiveSL.checkNewScan(average_x, average_y, VIDEO_DISPLAY_WIDTH / camRes[0], txt)
         if (grid_match) {
             overlay.children[grid_match - 1].classList.add('scanned')
         }
 
         if (ActiveSL.scan_complete) {
-            alert("This layer is fully scanned")
-            load_scanning_layer("LEFT_RACK") 
+            update_status_message("Current Layer is fully scanned:")
+            update_status_message(ActiveSL.getResultString())
+            current_scanning_layer += 1
+            // Refresh camera after completing scan to forget duplicates?
+            const event = new MouseEvent("click", {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+            });
+            document.getElementById("scanner_pause_trigger").dispatchEvent(event);
+            if (current_scanning_layer == SCANNING_PLAN.length) {
+                alert("Entire Scan Plan is complete")
+            }
+            else {
+                load_scanning_layer(SCANNING_PLAN[current_scanning_layer]) 
+                alert("Layer Complete, Slect Resume Scan to procede to next layer")
+            }
         }
-        
     }
 
 
@@ -156,7 +179,6 @@
         let top =  ActiveSL.y_offset_pct
         let cell_width = ActiveSL.cell_x_pct + ActiveSL.x_gap_pct
         let cell_height = ActiveSL.cell_y_pct + ActiveSL.y_gap_pct
-        console.log("CW:", cell_width)
         let right = left + (cell_width * ActiveSL.num_cols) - ActiveSL.x_gap_pct
         let bottom = top + (cell_height * ActiveSL.num_rows) - ActiveSL.y_gap_pct
         document.getElementById("roi_top_input").value = top
@@ -167,19 +189,19 @@
 
     function redraw_overlay() {
         // Set offset and grid gaps
-        overlay.style.paddingLeft = ActiveSL.x_offset_px
-        overlay.style.paddingTop =  ActiveSL.y_offset_px
-        //let x_gap = (x_gap_input.value * VIDEO_DISPLAY_WIDTH/100).toString() + "px"
-        //let y_gap = (y_gap_input.value * VIDEO_DISPLAY_HEIGHT/100).toString() + "px"
-        let x_gap = ActiveSL.x_gap_px + "px"
-        let y_gap = ActiveSL.y_gap_px + "px"
+        overlay.style.paddingLeft = x_offset_input.value * VIDEO_DISPLAY_WIDTH/100
+        overlay.style.paddingTop =  y_offset_input.value * VIDEO_DISPLAY_HEIGHT/100
+        let x_gap = (x_gap_input.value * VIDEO_DISPLAY_WIDTH/100).toString() + "px"
+        let y_gap = (y_gap_input.value * VIDEO_DISPLAY_HEIGHT/100).toString() + "px"
+        //let x_gap = ActiveSL.x_gap_px + "px"
+        //let y_gap = ActiveSL.y_gap_px + "px"
         // Grid gap takes <Row-gap> <Column-Gap>, so y_gap goes first
         overlay.style.gap = y_gap + " " + x_gap
         // Set grid template based on cell sizes.
         let num_cols = num_cols_input.value.toString()
         let num_rows = num_rows_input.value.toString()
-        let x_size = ActiveSL.cell_x_px + "px"
-        let y_size = ActiveSL.cell_y_px + "px"
+        let x_size = (x_length_input.value * VIDEO_DISPLAY_WIDTH/100).toString() + "px"
+        let y_size = (y_length_input.value * VIDEO_DISPLAY_HEIGHT/100).toString() + "px"
         // repeat(N, 99px)
         overlay.style.gridTemplateColumns = "repeat(" + num_cols + "," + x_size + ")"
         overlay.style.gridTemplateRows = "repeat(" + num_rows + "," + y_size + ")"
@@ -194,7 +216,6 @@
             br.classList.add('barcode_region');
             document.getElementById("overlay").appendChild(br)  
         }
-
         refresh_roi_inputs()
     }   
 
