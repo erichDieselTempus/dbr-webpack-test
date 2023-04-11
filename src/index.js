@@ -31,8 +31,9 @@ async function startCamera() {
         let settings = await scanner.getRuntimeSettings();
         await scanner.setResolution(1280, 720);
         let camRes = await scanner.getResolution()
-        //settings.barcodeFormatIds =  EnumBarcodeFormat.BF_ONED
-        
+        //  Set general decoding settings (These remain unchanged across scanning layers)
+        settings.furtherModes.deformationResistingModes = [2, 0, 0, 0, 0, 0, 0, 0];
+        settings.deblurModes = [1, 2, 4, 8, 0, 0, 0, 0, 0, 0];
         await scanner.updateRuntimeSettings(settings);
         
         await scanner.setUIElement(document.getElementById('div-ui-container'));
@@ -64,18 +65,6 @@ async function startCamera() {
 }
 
 
-if (document.getElementById('startScanning')) {
-    document.getElementById('startScanning').onclick = async function() {
-        try {
-            let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance())
-            await scanner.resumeScan()
-            console.log("Scanning Unpaused!")
-        } catch (ex) {
-            //alert(ex.message);
-            throw ex;
-        }
-    };
-}
 
 if (document.getElementById('scanner_settings_update_trigger')) {
     document.getElementById('scanner_settings_update_trigger').onclick = async function() {
