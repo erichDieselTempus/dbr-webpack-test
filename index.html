@@ -11,11 +11,11 @@
     <div id = "masterGrid">
         <div id="left_sidebar" class="sidebar">
             <h2>Status Message:</h2>
-            <div id = "status_message" style="height:100px;width:auto;border:1px solid #ccc;font:16px/26px Georgia, Garamond, Serif;overflow:auto;"></div>
+            <div id = "status_message" style="height:100px;width:100%;border:1px solid #ccc;font:16px/26px Georgia, Garamond, Serif;overflow:auto;"></div>
             <label for="num_cols_input">Columns:</label>
             <input type="number" id="num_cols_input" min="0" max="10" onchange="redraw_overlay()">
             <br>
-            <label for="num_rows_input">Rows:</label>
+            <label for="num_rows_input">Rows:</label>   
             <input type="number" id="num_rows_input" min="0" max="10" onchange="redraw_overlay()">
             <br>
             <label for="x_length_input">X Length:</label>
@@ -71,6 +71,7 @@
     // Assume that we will only deal in video formats with a 16:9 aspect ratio
     const VIDEO_DISPLAY_WIDTH = 800 
     const VIDEO_DISPLAY_HEIGHT = VIDEO_DISPLAY_WIDTH * (9/16)
+    const CAMERA_RESOLUTION = [1280,720]
 
     var x_offset_input = document.getElementById("x_offset_input")
     var y_offset_input = document.getElementById("y_offset_input")
@@ -93,18 +94,18 @@
 
     function load_scanning_layer(template_name) {
         //document.getElementById("active_scanning_layer").innerText = template_name
-        let SL = new ScanLayer(template_name)
+        let SL = new ScanLayer(template_name, CAMERA_RESOLUTION, [VIDEO_DISPLAY_WIDTH, VIDEO_DISPLAY_HEIGHT])
         console.log("Load Scanning Layer: ", template_name, SL)
         // Update input fields and store the new ScanLayer before redrawing grid.
         ActiveSL = SL
-        x_offset_input.value = SL.x_offset
-        y_offset_input.value = SL.y_offset
+        x_offset_input.value = SL.x_offset_px
+        y_offset_input.value = SL.y_offset_px
         num_cols_input.value = SL.num_cols
         num_rows_input.value = SL.num_rows
-        x_gap_input.value = SL.x_gap
-        y_gap_input.value = SL.y_gap
-        x_length_input.value = SL.cell_x
-        y_length_input.value = SL.cell_y
+        x_gap_input.value = SL.x_gap_px
+        y_gap_input.value = SL.y_gap_px
+        x_length_input.value = SL.cell_x_px
+        y_length_input.value = SL.cell_y_px
         const event = new MouseEvent("click", {
             view: window,
             bubbles: true,
@@ -149,31 +150,15 @@
     }
 
 
-    function load_overlay(template_name) {
-        let SL = new ScanLayer(template_name)
-        // Update input fields and store the new ScanLayer before redrawing grid.
-        ActiveSL = SL
-        x_offset_input.value = SL.x_offset
-        y_offset_input.value = SL.y_offset
-        num_cols_input.value = SL.num_cols
-        num_rows_input.value = SL.num_rows
-        x_gap_input.value = SL.x_gap
-        y_gap_input.value = SL.y_gap
-        x_length_input.value = SL.cell_x
-        y_length_input.value = SL.cell_y
-        redraw_overlay()
-    }
     
     function refresh_roi_inputs() {
-        let left =  ~~x_offset_input.value 
-        let top = ~~y_offset_input.value 
-        console.log( x_length_input.value, x_gap_input.value)
-        let cell_width = ~~x_length_input.value + ~~x_gap_input.value
-        let cell_height = ~~y_length_input.value + ~~y_gap_input.value
+        let left =  ActiveSL.x_offset_pct
+        let top =  ActiveSL.y_offset_pct
+        let cell_width = ActiveSL.cell_x_pct + ActiveSL.x_gap_pct
+        let cell_height = ActiveSL.cell_y_pct + ActiveSL.y_gap_pct
         console.log("CW:", cell_width)
-        let right = left + (cell_width * ~~num_cols_input.value) - ~~x_gap_input.value
-        let bottom = top + (cell_height * ~~num_rows_input.value) - ~~y_gap_input.value
-        console.log(left, right, top, bottom, cell_width, cell_height)
+        let right = left + (cell_width * ActiveSL.num_cols) - ActiveSL.x_gap_pct
+        let bottom = top + (cell_height * ActiveSL.num_rows) - ActiveSL.y_gap_pct
         document.getElementById("roi_top_input").value = top
         document.getElementById("roi_bottom_input").value = bottom
         document.getElementById("roi_left_input").value = left
@@ -182,17 +167,19 @@
 
     function redraw_overlay() {
         // Set offset and grid gaps
-        overlay.style.paddingLeft = x_offset_input.value * VIDEO_DISPLAY_WIDTH/100
-        overlay.style.paddingTop = y_offset_input.value * VIDEO_DISPLAY_HEIGHT/100
-        let x_gap = (x_gap_input.value * VIDEO_DISPLAY_WIDTH/100).toString() + "px"
-        let y_gap = (y_gap_input.value * VIDEO_DISPLAY_HEIGHT/100).toString() + "px"
+        overlay.style.paddingLeft = ActiveSL.x_offset_px
+        overlay.style.paddingTop =  ActiveSL.y_offset_px
+        //let x_gap = (x_gap_input.value * VIDEO_DISPLAY_WIDTH/100).toString() + "px"
+        //let y_gap = (y_gap_input.value * VIDEO_DISPLAY_HEIGHT/100).toString() + "px"
+        let x_gap = ActiveSL.x_gap_px + "px"
+        let y_gap = ActiveSL.y_gap_px + "px"
         // Grid gap takes <Row-gap> <Column-Gap>, so y_gap goes first
         overlay.style.gap = y_gap + " " + x_gap
         // Set grid template based on cell sizes.
         let num_cols = num_cols_input.value.toString()
         let num_rows = num_rows_input.value.toString()
-        let x_size = (x_length_input.value * VIDEO_DISPLAY_WIDTH/100).toString() + "px"
-        let y_size = (y_length_input.value * VIDEO_DISPLAY_HEIGHT/100).toString() + "px"
+        let x_size = ActiveSL.cell_x_px + "px"
+        let y_size = ActiveSL.cell_y_px + "px"
         // repeat(N, 99px)
         overlay.style.gridTemplateColumns = "repeat(" + num_cols + "," + x_size + ")"
         overlay.style.gridTemplateRows = "repeat(" + num_rows + "," + y_size + ")"
@@ -230,7 +217,7 @@
     #masterGrid {
         height: 100%;
         display:grid;
-        grid-template-columns: 1fr 960px 1fr;
+        grid-template-columns: minmax(0, 1fr) 960px minmax(0, 1fr);
         grid-template-rows: 1fr 1fr;
     }
 
@@ -258,7 +245,6 @@
 
     .sidebar {
         background-color:#887ecb;
-        justify-self: auto;
     }
     .barcode_region {
         justify-self: stretch;

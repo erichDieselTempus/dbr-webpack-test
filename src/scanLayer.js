@@ -4,6 +4,11 @@ const SCANNING_PLANS = {
     BLASTOFF: ["TUBES", "LEFT_RACK", "RIGHT_RACK"]
 }
 
+
+
+const alt_LAYER_TEMPLATES = {
+
+}
 const LAYER_TEMPLATES = {
     TRAY_ID: {
         cell_x: 75,
@@ -52,14 +57,34 @@ const LAYER_TEMPLATES = {
 }
 
 class ScanLayer {
-    constructor(template_name) {
+    constructor(template_name, cameraResolution, displayResolution) {
+        // Load template settings into scan layer and calculate their Percentage based values.
+        // Template Pct values are reported 0-100 and must be converted to 0-1 for multiplication.
+        // This convention was selected because the scanner takes percentages as 0-100, and the values
+        // are a bit more legible in the templates?
+
+        // Can also check if the template is "too large" during construction if needed?
         this.results = {}
-        this.cell_x = LAYER_TEMPLATES[template_name]["cell_x"]
-        this.cell_y = LAYER_TEMPLATES[template_name]["cell_y"]
-        this.x_offset = LAYER_TEMPLATES[template_name]["x_offset"]
-        this.y_offset = LAYER_TEMPLATES[template_name]["y_offset"]
-        this.x_gap = LAYER_TEMPLATES[template_name]["x_gap"]
-        this.y_gap = LAYER_TEMPLATES[template_name]["y_gap"]
+        this.display_width = displayResolution[0]
+        this.display_height = displayResolution[1]
+        this.cam_width = cameraResolution[0]
+        this.cam_height = cameraResolution[1]
+        // Set Cell Size
+        this.cell_x_pct = LAYER_TEMPLATES[template_name]["cell_x"]
+        this.cell_x_px = this.cell_x_pct * this.display_width/100
+        this.cell_y_pct = LAYER_TEMPLATES[template_name]["cell_y"]
+        this.cell_y_px = this.cell_y_pct * this.display_height/100
+        // Set Offsets
+        this.x_offset_pct = LAYER_TEMPLATES[template_name]["x_offset"]
+        this.x_offset_px = this.x_offset_pct * this.display_width/100
+        this.y_offset_pct = LAYER_TEMPLATES[template_name]["y_offset"]
+        this.y_offset_px = this.y_offset_pct * this.display_height/100
+        // Set gaps
+        this.x_gap_pct = LAYER_TEMPLATES[template_name]["x_gap"]
+        this.x_gap_px = this.x_gap_pct * this.display_width/100
+        this.y_gap_pct = LAYER_TEMPLATES[template_name]["y_gap"]
+        this.y_gap_px = this.y_gap_pct * this.display_height/100
+        // Misc.
         this.num_rows = LAYER_TEMPLATES[template_name]["num_rows"]
         this.num_cols = LAYER_TEMPLATES[template_name]["num_cols"]     
         this.bc_format = LAYER_TEMPLATES[template_name]["bc_format"]
@@ -98,27 +123,28 @@ class ScanLayer {
         // Returns false if point is not in a target region. otherwise returns an integer index.
         // Indexes are countedleft to right, then top to bottom starting at 1.
         // 1 is start index for compatibility with spreadsheets?
-        let x_unit = this.cell_x + this.x_gap
-        let y_unit = this.cell_y + this.y_gap
+
+        let x_unit_px = (this.cell_x_px + this.x_gap_px)
+        let y_unit_px = (this.cell_y_px + this.y_gap_px)
 
         console.log("Scan Layer (Before Applied): " + x.toString() + ", " + y.toString())
         // Correct for Offset
-        x -= this.x_offset
-        y -= this.y_offset
+        x -= this.x_offset_px 
+        y -= this.y_offset_px
         console.log("Scan Layer (Offset Applied): " + x.toString() + ", " + y.toString())
 
         // Isolate point to bounds of a single unit
-        let col_idx = Math.floor(x / x_unit) 
-        let row_idx = Math.floor(y / y_unit) 
-        let dx = x % x_unit 
-        let dy = y % y_unit
+        let col_idx = Math.floor(x / x_unit_px) 
+        let row_idx = Math.floor(y / y_unit_px) 
+        let dx = x % x_unit_px 
+        let dy = y % y_unit_px
         
         // Break if either point is past min
         if (x < 0 || y < 0) return false
         // Break if either point falls in the gap
         if (dx > this.cell_x || dy > this.cell_y) return false
         // Break if either point is past max
-        if (x > x_unit * this.num_cols || y > y_unit * this.num_rows) return false
+        if (x > x_unit_px * this.num_cols || y > y_unit_px * this.num_rows) return false
         return (row_idx * this.num_cols) + col_idx + 1
     }
 
@@ -143,6 +169,11 @@ class ScanLayer {
             }
         }
         return count
+    }
+
+    setDisplaySize(w,h) {
+        this.display_width = ~~w
+        this.display_height = ~~h
     }
 }
 
