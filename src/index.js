@@ -15,7 +15,6 @@ BarcodeScanner.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-java
 
 var pScanner = null;
 
-
 startCamera()
 
 async function startCamera() {
@@ -31,11 +30,12 @@ async function startCamera() {
         let settings = await scanner.getRuntimeSettings();
         await scanner.setResolution(1280, 720);
         let camRes = await scanner.getResolution()
+        
+
         //  Set general decoding settings (These remain unchanged across scanning layers)
         settings.furtherModes.deformationResistingModes = [2, 0, 0, 0, 0, 0, 0, 0];
         settings.deblurModes = [1, 2, 4, 8, 0, 0, 0, 0, 0, 0];
         await scanner.updateRuntimeSettings(settings);
-        
         await scanner.setUIElement(document.getElementById('div-ui-container'));
         // Would it be worth forcing you to wait for a frame where all codes can be read simultaneously?
         // Does this change if we're trying to archive photos from the scan?
@@ -56,6 +56,7 @@ async function startCamera() {
 
         await scanner.show();
         await scanner.pauseScan();
+        
         //confirm('Please ensure the camera and scan target are properly aligned, then click "Begin Scanning"')
             
     } catch (ex) {
