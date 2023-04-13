@@ -9,6 +9,8 @@
     <button hidden id="startScanning">Begin Scanning</button>
     <button hidden id="scanner_settings_update_trigger" data-value="0x8000000">1-D Barcode Format</button>
     <button hidden id="scanner_pause_trigger">Scanner Pause Trigger</button>
+    <button  id="report_camera_trigger">Get Camera Info</button>
+    <button  id="increment_camera_trigger" data-active_index="0">Next Camera</button>
     <button id="scanner_resume_trigger">SCAN!</button>
     <div id = "masterGrid">
         <div id="left_sidebar" class="sidebar">
@@ -170,11 +172,16 @@
                 bubbles: true,
                 cancelable: true,
             });
+            
             document.getElementById("scanner_pause_trigger").dispatchEvent(event);
             if (current_scanning_layer == SCANNING_PLAN.length) {
                 alert("Entire Scan Plan is complete")
             }
             else {
+                if (ActiveSL.increment_camera) {
+                    console.log("increment")
+                    document.getElementById("increment_camera_trigger").dispatchEvent(event);
+                }
                 load_scanning_layer(SCANNING_PLAN[current_scanning_layer]) 
                 alert("Layer Complete, Slect Resume Scan to procede to next layer")
             }

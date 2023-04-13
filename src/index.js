@@ -119,6 +119,37 @@ if (document.getElementById('scanner_resume_trigger')) {
         }
     }
 }
+
+if (document.getElementById('report_camera_trigger')) {
+    document.getElementById('report_camera_trigger').onclick = async function() {
+        try {
+            let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance());
+            let cam = await scanner.getAllCameras()
+            console.log(cam)
+        } catch (ex) {
+            alert(ex.message);
+            throw ex;
+        }
+    }
+}
+
+if (document.getElementById('increment_camera_trigger')) {
+    document.getElementById('increment_camera_trigger').onclick = async function() {
+        try {
+            let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance());
+            let cameras = await scanner.getAllCameras()
+            let active_index = ~~document.getElementById("increment_camera_trigger").dataset.active_index
+            active_index += 1
+            if (active_index >= cameras.length) {active_index = 0}
+            document.getElementById("increment_camera_trigger").dataset.active_index = active_index
+
+            await scanner.setCurrentCamera(cameras[active_index])
+        } catch (ex) {
+            alert(ex.message);
+            throw ex;
+        }
+    }
+}
 /*
 if (document.getElementById('get_cameras')) {
     document.getElementById('get_cameras').onclick = async function() {

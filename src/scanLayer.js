@@ -17,6 +17,7 @@ const LAYER_TEMPLATES = {
         y_gap: 0,
         num_rows: 1,
         num_cols: 1,
+        increment_camera: true,  // Determines if next camera is loaded after a successful read.
         bc_format: 0x8000000,  // DataMatrix
     },
     TUBES: {
@@ -28,6 +29,7 @@ const LAYER_TEMPLATES = {
         y_gap: 16,
         num_rows: 2,
         num_cols: 2,
+        increment_camera: false,
         bc_format: 0x3007FF,  // ONED (aka One-D aka broad category for linear codes)
     },
     LEFT_RACK: {
@@ -39,6 +41,7 @@ const LAYER_TEMPLATES = {
         y_gap: 4,
         num_rows: 6,
         num_cols: 4,
+        increment_camera: false,
         bc_format: 0x8000000,  // DataMatrix
     },
     RIGHT_RACK: {
@@ -50,6 +53,7 @@ const LAYER_TEMPLATES = {
         y_gap: 4,
         num_rows: 6,
         num_cols: 4,
+        increment_camera: false,
         bc_format: 0x8000000,  // DataMatrix
     }
 }
@@ -84,7 +88,8 @@ class ScanLayer {
         this.y_gap_px = this.y_gap_pct * this.display_height/100
         // Misc.
         this.num_rows = LAYER_TEMPLATES[template_name]["num_rows"]
-        this.num_cols = LAYER_TEMPLATES[template_name]["num_cols"]     
+        this.num_cols = LAYER_TEMPLATES[template_name]["num_cols"]
+        this.increment_camera = LAYER_TEMPLATES[template_name]["increment_camera"]
         this.bc_format = LAYER_TEMPLATES[template_name]["bc_format"]
         this.resetResultsList()
        
