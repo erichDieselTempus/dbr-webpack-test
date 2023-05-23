@@ -9,8 +9,11 @@
     <button hidden id="startScanning">Begin Scanning</button>
     <button hidden id="scanner_settings_update_trigger" data-value="0x8000000">1-D Barcode Format</button>
     <button hidden id="scanner_pause_trigger">Scanner Pause Trigger</button>
+
+
     <button  id="report_camera_trigger">Get Camera Info</button>
     <button  id="increment_camera_trigger" data-active_index="0">Next Camera</button>
+    <button id="capture_image_trigger">Capture Image</button>
     <button id="scanner_resume_trigger">SCAN!</button>
     <div id = "masterGrid">
         <div id="left_sidebar" class="sidebar">
@@ -61,7 +64,7 @@
         </div>
         <div id="div-ui-container">     
             <select class="dce-sel-camera"></select>
-            <select class="dce-sel-resolution"></select><br>
+            <select class="dce-sel-resolution" onchange="resolution_changed(event)"></select><br>
             
             <div class="dce-video-container"></div>
             <div id="overlay" onclick="check_grid_click(event)"></div>
@@ -73,6 +76,7 @@
             <div id="result_list"></div>
         </div>
     </div>
+    <div id = "cves"></div>
     <script src="./dist/bundle.js"></script>
     <script src="./src/scanLayer.js"></script>
 </body>
@@ -81,8 +85,9 @@
     const DEV_MODE = true
     const VIDEO_DISPLAY_WIDTH = 800 
     const VIDEO_DISPLAY_HEIGHT = VIDEO_DISPLAY_WIDTH * (9/16)
-    const CAMERA_RESOLUTION = [1280,720]
-    const SCANNING_PLAN = ["TRAY_ID","LEFT_RACK","RIGHT_RACK","TUBES"]
+    const CAMERA_RESOLUTION = [3840,2160]
+    //const CAMERA_RESOLUTION = [1920,1080]
+    const SCANNING_PLAN = ["SYMPHONY","LEFT_RACK","RIGHT_RACK","TUBES","FLUIDX_RACK"]
 
     var current_scanning_layer = 0
 
@@ -136,6 +141,14 @@
         document.getElementById("status_message").innerText += msg + "\n"
     }
 
+    function resolution_changed(event) {
+        let resolution_selector = document.getElementsByClassName("dce-opt-gotResolution")
+        let d = resolution_selector.dataset
+        //let x_res = resolution_selector.dataset.width
+        //let y_res = resolutoin_selector.dataset.height
+        console.log("Resolution Changed",d)
+        //console.log(event)
+    }
 
 
     function check_grid_click(event) {
@@ -149,6 +162,7 @@
     }
 
     function check_grid_scan(txt,result, camRes) {
+        
         let x1 = result["localizationResult"]["x1"]
         let y1 = result["localizationResult"]["y1"]
         let average_x = (result["localizationResult"]["x1"] + result["localizationResult"]["x2"] + result["localizationResult"]["x3"] + result["localizationResult"]["x4"])/4
@@ -157,6 +171,8 @@
         //Need to adjust the scale of units to reflect the overlay window.
         // Scan results are reported in camera pixels.
         //console.log("Code Centroid Read: " + average_x.toString() + ", " + average_y.toString())
+        console.log(camRes)
+        console.log("Scale Factor:", VIDEO_DISPLAY_WIDTH / camRes[0])
         let grid_match = ActiveSL.checkNewScan(average_x, average_y, VIDEO_DISPLAY_WIDTH / camRes[0], txt)
         if (grid_match) {
             overlay.children[grid_match - 1].classList.add('scanned')
@@ -287,7 +303,7 @@
         justify-self: stretch;
         border-style: solid;
         border-color: yellow;
-        border-width: 5px;
+        border-width: 2px;
         border-radius: 0%;
         pointer-events: none;
     }

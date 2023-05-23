@@ -9,7 +9,7 @@ document.getElementById('UIElement').appendChild(scanner.getUIElement());
 */
 
 import {BarcodeReader, BarcodeScanner} from "dynamsoft-javascript-barcode";
-import {EnumBarcodeFormat} from "dynamsoft-javascript-barcode";
+import {EnumGrayscaleTransformationMode} from "dynamsoft-javascript-barcode";
 BarcodeScanner.license = 'DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAxNzU1MzczLVRYbFhaV0pRY205cVgyUmljZyIsIm1haW5TZXJ2ZXJVUkwiOiJodHRwczovL21sdHMuZHluYW1zb2Z0LmNvbSIsIm9yZ2FuaXphdGlvbklEIjoiMTAxNzU1MzczIiwiY2hlY2tDb2RlIjoyODA2NjU1NTV9';
 BarcodeScanner.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode/dist/";
 
@@ -23,18 +23,18 @@ async function startCamera() {
 
         // Can't get API to report cameras, it is returning an empty array.  Ignoring for now
         //  because I suspect it might be a permissions issue that will be influenced by build process.
-        /*
-        let cameras = await scanner.getAllCameras()
-        console.log(cameras)
-        */
+        
         let settings = await scanner.getRuntimeSettings();
-        await scanner.setResolution(1280, 720);
+        await scanner.setResolution(3840, 2160 );
+        //await scanner.setResolution(1920, 1080 );
         let camRes = await scanner.getResolution()
+        console.log(camRes, "START CAMERA")
         
 
         //  Set general decoding settings (These remain unchanged across scanning layers)
         settings.furtherModes.deformationResistingModes = [2, 0, 0, 0, 0, 0, 0, 0];
         settings.deblurModes = [1, 2, 4, 8, 0, 0, 0, 0, 0, 0];
+        settings.timeout = 50000
         await scanner.updateRuntimeSettings(settings);
         await scanner.setUIElement(document.getElementById('div-ui-container'));
         // Would it be worth forcing you to wait for a frame where all codes can be read simultaneously?
@@ -72,9 +72,13 @@ if (document.getElementById('scanner_settings_update_trigger')) {
         try {
             let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance());
             let settings = await scanner.getRuntimeSettings();
+            let camRes = await scanner.getResolution()
             // Critical to recast this value as Number during assignement.
             // console.log(typeof(~~document.getElementById('bc_format_trigger').dataset.value))
             settings.barcodeFormatIds = ~~document.getElementById('scanner_settings_update_trigger').dataset.value;
+            // Allow reading of inverted BC (Values come from EnumGrayscaleTransformationMode )
+            settings.furtherModes.grayscaleTransformationModes = [2, 1];
+            // Update ROI
             settings.region.regionMeasuredByPercentage = 1;
             settings.region.regionLeft = document.getElementById('roi_left_input').value;
             settings.region.regionTop = document.getElementById('roi_top_input').value;
@@ -82,7 +86,8 @@ if (document.getElementById('scanner_settings_update_trigger')) {
             settings.region.regionBottom = document.getElementById('roi_bottom_input').value;
             settings.autoFocus = true
             settings.expectedBarcodesCount = ~~document.getElementById("num_cols_input").value *  ~~document.getElementById('num_rows_input').value
-
+           
+            console.log("Camera Resolution:", camRes)
             console.log("Barcode Format has been changed to " + document.getElementById('scanner_settings_update_trigger').dataset.value.toString())
             console.log("ROI has been updated")
             console.log("expected BC counted updated", settings.expectedBarcodesCount)
@@ -93,7 +98,23 @@ if (document.getElementById('scanner_settings_update_trigger')) {
         }
     }
 }
-
+if (document.getElementById('capture_image_trigger')) {
+    document.getElementById('capture_image_trigger').onclick = async function() {
+        // Haven't been able to get this to work.  The functionality is an extension of the static barcode reader,
+        // I suspect there are some additional settings involved needed to get to isolate a single frame.  Possibly singleFrameMode?
+        try {
+            console.log("Attempting to Capture image")
+            let scanner = await (pScanner = pScanner || BarcodeScanner.createInstance());
+            scanner.ifSaveOriginalImageInACanvas = true
+            let cvs = await scanner.getOriginalImageInACanvas();
+            console.log(cvs)
+            document.getElementById('cves').appendChild(cvs)
+        } catch (ex) {
+            alert(ex.message);
+            throw ex;
+        }
+    }
+}
 
 if (document.getElementById('scanner_pause_trigger')) {
     document.getElementById('scanner_pause_trigger').onclick = async function() {

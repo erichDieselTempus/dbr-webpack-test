@@ -17,7 +17,7 @@ const LAYER_TEMPLATES = {
         y_gap: 0,
         num_rows: 1,
         num_cols: 1,
-        increment_camera: true,  // Determines if next camera is loaded after a successful read.
+        increment_camera: false,  // Determines if next camera is loaded after a successful read.
         bc_format: 0x8000000,  // DataMatrix
     },
     TUBES: {
@@ -55,6 +55,30 @@ const LAYER_TEMPLATES = {
         num_cols: 4,
         increment_camera: false,
         bc_format: 0x8000000,  // DataMatrix
+    },
+    FLUIDX_RACK: {
+        cell_x: 40,
+        cell_y: 20,
+        x_offset: 30,
+        y_offset: 40,
+        x_gap: 0,
+        y_gap: 0,
+        num_rows: 1,
+        num_cols: 1,
+        increment_camera: true,
+        bc_format: 0x3007FF,  // ONED (aka One-D aka broad category for linear codes)
+    },
+    SYMPHONY: {
+        cell_x: 3,
+        cell_y: 35,
+        x_offset: 2,
+        y_offset: 28,
+        x_gap: 1.05,
+        y_gap: 0,
+        num_rows: 1,
+        num_cols: 24,
+        increment_camera: false,
+        bc_format: 0x3007FF,  // ONED (aka One-D aka broad category for linear codes)
     }
 }
 
@@ -159,6 +183,7 @@ class ScanLayer {
 
     checkNewScan(camera_x, camera_y, scale_factor, txt) {
         let cell_index = this.getCellIndexAt(camera_x * scale_factor, camera_y * scale_factor)
+        console.log("Camera Coords",camera_x,)
         if (cell_index) {
             this.results[cell_index] = txt
             //console.log("Barcode registered with Scan Layer: " + txt)
